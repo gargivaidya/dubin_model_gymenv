@@ -26,7 +26,7 @@ show_animation = True
 class DubinGym(gym.Env):
 
 	def __init__(self,start_point, target_point):
-		super(DeepracerGym,self).__init__()
+		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
 
 		self.action_space = spaces.Box(np.array([0., -1.]), np.array([1., 1.]), dtype = np.float32)

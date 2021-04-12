@@ -4,6 +4,7 @@ import math
 import gym
 from gym import spaces
 import time
+import itertools
 
 from stable_baselines.sac.policies import MlpPolicy
 from stable_baselines import SAC
@@ -14,6 +15,7 @@ MIN_SPEED = 0.
 THRESHOLD_DISTANCE_2_GOAL = 0.02
 MAX_X = 10.
 MAX_Y = 10.
+max_ep_length = 800
 
 # Vehicle parameters
 LENGTH = 0.45  # [m]
@@ -39,9 +41,15 @@ class DubinGym(gym.Env):
 		self.target = [target_point[0]/MAX_X, target_point[1]/MAX_Y, target_point[2]]
 		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
 		self.action = [0., 0.]
+		self.traj_x = [self.pose[0]*MAX_X]
+		self.traj_y = [self.pose[1]*MAX_Y]
+		self.traj_yaw = [self.pose[2]]
 
 	def reset(self): 
-		self.observation_space = np.array([0., 0., 1.57])
+		self.pose = np.array([0., 0., 1.57])
+		self.traj_x = [0.*MAX_X]
+		self.traj_y = [0.*MAX_Y]
+		self.traj_yaw = [1.57]
 		return np.array([0., 0., 1.57])
 
 	def get_reward(self):
@@ -77,21 +85,24 @@ class DubinGym(gym.Env):
 		return np.array(self.pose), reward, done, info     
 
 	def render(self):
-		print("Rendering")
-		show_animation = True
-		if show_animation:  # pragma: no cover
-			plt.cla()
-			# for stopping simulation with the esc key.
-			plt.gcf().canvas.mpl_connect('key_release_event',
-					lambda event: [exit(0) if event.key == 'escape' else None])
-			plt.plot(self.pose[0]*MAX_X, self.pose[1]*MAX_Y, "ob", label="trajectory")
-			plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
-			# self.plot_car()
-			plt.axis("equal")
-			plt.grid(True)
-			# plt.title("Time[s]:" + str(np.round(time, 2)) + ", speed[km/h]:" + str(np.round(self.action[0] * 3.6, 2)))
-			plt.pause(0.0001)
-		pass
+		# print("Rendering")
+
+		self.traj_x.append(self.pose[0]*MAX_X)
+		self.traj_y.append(self.pose[1]*MAX_Y)
+		self.traj_yaw.append(self.pose[2])
+	  
+		plt.cla()
+		# for stopping simulation with the esc key.
+		plt.gcf().canvas.mpl_connect('key_release_event',
+				lambda event: [exit(0) if event.key == 'escape' else None])
+		plt.plot(self.traj_x*10, self.traj_y*10, "ob", markersize = 2, label="trajectory")
+		plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
+		self.plot_car()
+		plt.axis("equal")
+		plt.grid(True)
+		plt.title("Simulation")
+		plt.pause(0.0001)
+		
 
 	def close(self):
 		pass
@@ -100,7 +111,7 @@ class DubinGym(gym.Env):
 		# print("Updating state")
 		throttle = a[0]
 		steer = a[1]
-		# input check
+
 		if steer >= MAX_STEER:
 			steer = MAX_STEER
 		elif steer <= -MAX_STEER:
@@ -115,131 +126,69 @@ class DubinGym(gym.Env):
 		state[1] = state[1] + throttle * math.sin(state[2]) * DT
 		state[2] = state[2] + throttle / WB * math.tan(steer) * DT
 
-		# state.v = state.v + a * DT	
-
 		return state
 
-	# def plot_car(self, cabcolor="-r", truckcolor="-k"):  # pragma: no cover
-	# 	print("Plotting Car")
-	# 	x = self.pose[0]
-	# 	y = self.pose[1]
-	# 	yaw = self.pose[2]
-	# 	steer = self.action[1]
+	def plot_car(self, cabcolor="-r", truckcolor="-k"):  # pragma: no cover
+		# print("Plotting Car")
+		x = self.pose[0]*MAX_X #self.pose[0]
+		y = self.pose[1]*MAX_Y #self.pose[1]
+		yaw = self.pose[2] #self.pose[2]
+		steer = self.action[1]*MAX_STEER #self.action[1]
+
+		outline = np.array([[-BACKTOWHEEL, (LENGTH - BACKTOWHEEL), (LENGTH - BACKTOWHEEL), -BACKTOWHEEL, -BACKTOWHEEL],
+							[WIDTH / 2, WIDTH / 2, - WIDTH / 2, -WIDTH / 2, WIDTH / 2]])
+
+		fr_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN, WHEEL_LEN],
+							 [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD]])
+
+		rr_wheel = np.copy(fr_wheel)
+
+		fl_wheel = np.copy(fr_wheel)
+		fl_wheel[1, :] *= -1
+		rl_wheel = np.copy(rr_wheel)
+		rl_wheel[1, :] *= -1
+
+		Rot1 = np.array([[math.cos(yaw), math.sin(yaw)],
+						 [-math.sin(yaw), math.cos(yaw)]])
+		Rot2 = np.array([[math.cos(steer), math.sin(steer)],
+						 [-math.sin(steer), math.cos(steer)]])
+
+		fr_wheel = (fr_wheel.T.dot(Rot2)).T
+		fl_wheel = (fl_wheel.T.dot(Rot2)).T
+		fr_wheel[0, :] += WB
+		fl_wheel[0, :] += WB
+
+		fr_wheel = (fr_wheel.T.dot(Rot1)).T
+		fl_wheel = (fl_wheel.T.dot(Rot1)).T
+
+		outline = (outline.T.dot(Rot1)).T
+		rr_wheel = (rr_wheel.T.dot(Rot1)).T
+		rl_wheel = (rl_wheel.T.dot(Rot1)).T
+
+		outline[0, :] += x
+		outline[1, :] += y
+		fr_wheel[0, :] += x
+		fr_wheel[1, :] += y
+		rr_wheel[0, :] += x
+		rr_wheel[1, :] += y
+		fl_wheel[0, :] += x
+		fl_wheel[1, :] += y
+		rl_wheel[0, :] += x
+		rl_wheel[1, :] += y
+
+		plt.plot(np.array(outline[0, :]).flatten(),
+				 np.array(outline[1, :]).flatten(), truckcolor)
+		plt.plot(np.array(fr_wheel[0, :]).flatten(),
+				 np.array(fr_wheel[1, :]).flatten(), truckcolor)
+		plt.plot(np.array(rr_wheel[0, :]).flatten(),
+				 np.array(rr_wheel[1, :]).flatten(), truckcolor)
+		plt.plot(np.array(fl_wheel[0, :]).flatten(),
+				 np.array(fl_wheel[1, :]).flatten(), truckcolor)
+		plt.plot(np.array(rl_wheel[0, :]).flatten(),
+				 np.array(rl_wheel[1, :]).flatten(), truckcolor)
+		plt.plot(x, y, "*") 
 
 
-	# 	outline = np.array([[-BACKTOWHEEL, (LENGTH - BACKTOWHEEL), (LENGTH - BACKTOWHEEL), -BACKTOWHEEL, -BACKTOWHEEL],
-	# 						[WIDTH / 2, WIDTH / 2, - WIDTH / 2, -WIDTH / 2, WIDTH / 2]])
-
-	# 	fr_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN, WHEEL_LEN],
-	# 						 [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD]])
-
-	# 	rr_wheel = np.copy(fr_wheel)
-
-	# 	fl_wheel = np.copy(fr_wheel)
-	# 	fl_wheel[1, :] *= -1
-	# 	rl_wheel = np.copy(rr_wheel)
-	# 	rl_wheel[1, :] *= -1
-
-	# 	Rot1 = np.array([[math.cos(yaw), math.sin(yaw)],
-	# 					 [-math.sin(yaw), math.cos(yaw)]])
-	# 	Rot2 = np.array([[math.cos(steer), math.sin(steer)],
-	# 					 [-math.sin(steer), math.cos(steer)]])
-
-	# 	fr_wheel = (fr_wheel.T.dot(Rot2)).T
-	# 	fl_wheel = (fl_wheel.T.dot(Rot2)).T
-	# 	fr_wheel[0, :] += WB
-	# 	fl_wheel[0, :] += WB
-
-	# 	fr_wheel = (fr_wheel.T.dot(Rot1)).T
-	# 	fl_wheel = (fl_wheel.T.dot(Rot1)).T
-
-	# 	outline = (outline.T.dot(Rot1)).T
-	# 	rr_wheel = (rr_wheel.T.dot(Rot1)).T
-	# 	rl_wheel = (rl_wheel.T.dot(Rot1)).T
-
-	# 	outline[0, :] += x
-	# 	outline[1, :] += y
-	# 	fr_wheel[0, :] += x
-	# 	fr_wheel[1, :] += y
-	# 	rr_wheel[0, :] += x
-	# 	rr_wheel[1, :] += y
-	# 	fl_wheel[0, :] += x
-	# 	fl_wheel[1, :] += y
-	# 	rl_wheel[0, :] += x
-	# 	rl_wheel[1, :] += y
-
-	# 	plt.plot(np.array(outline[0, :]).flatten(),
-	# 			 np.array(outline[1, :]).flatten(), truckcolor)
-	# 	plt.plot(np.array(fr_wheel[0, :]).flatten(),
-	# 			 np.array(fr_wheel[1, :]).flatten(), truckcolor)
-	# 	plt.plot(np.array(rr_wheel[0, :]).flatten(),
-	# 			 np.array(rr_wheel[1, :]).flatten(), truckcolor)
-	# 	plt.plot(np.array(fl_wheel[0, :]).flatten(),
-	# 			 np.array(fl_wheel[1, :]).flatten(), truckcolor)
-	# 	plt.plot(np.array(rl_wheel[0, :]).flatten(),
-	# 			 np.array(rl_wheel[1, :]).flatten(), truckcolor)
-	# 	plt.plot(x, y, "*") 
-
-def plot_car(n_state, action, cabcolor="-r", truckcolor="-k"):  # pragma: no cover
-	print("Plotting Car")
-
-	x = n_state[0]*MAX_X #self.pose[0]
-	y = n_state[1]*MAX_Y #self.pose[1]
-	yaw = n_state[2] #self.pose[2]
-	steer = action[1]*MAX_STEER #self.action[1]
-
-	outline = np.array([[-BACKTOWHEEL, (LENGTH - BACKTOWHEEL), (LENGTH - BACKTOWHEEL), -BACKTOWHEEL, -BACKTOWHEEL],
-						[WIDTH / 2, WIDTH / 2, - WIDTH / 2, -WIDTH / 2, WIDTH / 2]])
-
-	fr_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN, WHEEL_LEN],
-						 [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD]])
-
-	rr_wheel = np.copy(fr_wheel)
-
-	fl_wheel = np.copy(fr_wheel)
-	fl_wheel[1, :] *= -1
-	rl_wheel = np.copy(rr_wheel)
-	rl_wheel[1, :] *= -1
-
-	Rot1 = np.array([[math.cos(yaw), math.sin(yaw)],
-					 [-math.sin(yaw), math.cos(yaw)]])
-	Rot2 = np.array([[math.cos(steer), math.sin(steer)],
-					 [-math.sin(steer), math.cos(steer)]])
-
-	fr_wheel = (fr_wheel.T.dot(Rot2)).T
-	fl_wheel = (fl_wheel.T.dot(Rot2)).T
-	fr_wheel[0, :] += WB
-	fl_wheel[0, :] += WB
-
-	fr_wheel = (fr_wheel.T.dot(Rot1)).T
-	fl_wheel = (fl_wheel.T.dot(Rot1)).T
-
-	outline = (outline.T.dot(Rot1)).T
-	rr_wheel = (rr_wheel.T.dot(Rot1)).T
-	rl_wheel = (rl_wheel.T.dot(Rot1)).T
-
-	outline[0, :] += x
-	outline[1, :] += y
-	fr_wheel[0, :] += x
-	fr_wheel[1, :] += y
-	rr_wheel[0, :] += x
-	rr_wheel[1, :] += y
-	fl_wheel[0, :] += x
-	fl_wheel[1, :] += y
-	rl_wheel[0, :] += x
-	rl_wheel[1, :] += y
-
-	plt.plot(np.array(outline[0, :]).flatten(),
-			 np.array(outline[1, :]).flatten(), truckcolor)
-	plt.plot(np.array(fr_wheel[0, :]).flatten(),
-			 np.array(fr_wheel[1, :]).flatten(), truckcolor)
-	plt.plot(np.array(rr_wheel[0, :]).flatten(),
-			 np.array(rr_wheel[1, :]).flatten(), truckcolor)
-	plt.plot(np.array(fl_wheel[0, :]).flatten(),
-			 np.array(fl_wheel[1, :]).flatten(), truckcolor)
-	plt.plot(np.array(rl_wheel[0, :]).flatten(),
-			 np.array(rl_wheel[1, :]).flatten(), truckcolor)
-	plt.plot(x, y, "*") 
 
 def main():
 
@@ -250,33 +199,17 @@ def main():
 
 	state = env.reset()
 	env.render()
-
-	x = [state[0]]
-	y = [state[1]]
-	yaw = [state[2]]
-
-	for i in range(max_steps):
-		action = [1.0, 0.]
-		n_state,reward,done,info = env.step(action)
-		x.append(n_state[0]*MAX_X)
-		y.append(n_state[1]*MAX_Y)
-		yaw.append(n_state[2])
-		# env.render()
-		# plot_car(n_state, action)
-		plt.cla()
-		plt.gcf().canvas.mpl_connect('key_release_event',
-				lambda event: [exit(0) if event.key == 'escape' else None])
-		# plt.plot(n_state[0]*MAX_X, n_state[1]*MAX_Y, "ob", markersize = 2, label="trajectory")
-		plt.plot(x*10, y*10, "ob", markersize = 2, label="trajectory")
-		plt.plot(target_point[0], target_point[1], "xg", label="target")
-		plot_car(n_state, action)
-		plt.axis("equal")
-		plt.grid(True)
-		# plt.title("Time[s]:" + str(np.round(time, 2)) + ", speed[km/h]:" + str(np.round(self.action[0] * 3.6, 2)))
-		plt.pause(0.0001)
-		if done:
-			state = env.reset()                   
-			break
+	for ep in range(5):
+		state = env.reset()
+		env.render()
+		for i in range(max_steps):
+			action = [1.0, 0.]
+			n_state,reward,done,info = env.step(action)
+			env.render()
+			if done:
+				state = env.reset()
+				done = False                   
+				break
 
 if __name__ == '__main__':
 	main()

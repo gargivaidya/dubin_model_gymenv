@@ -23,7 +23,7 @@ WB = 0.25  # [m]
 
 show_animation = True
 
-class DeepracerGym(gym.Env):
+class DubinGym(gym.Env):
 
 	def __init__(self,start_point, target_point):
 		super(DeepracerGym,self).__init__()
@@ -242,7 +242,7 @@ def main():
 
 	start_point = [0., 0., 1.57]
 	target_point = [0., 5., 1.57]
-	env =  DeepracerGym(start_point, target_point)
+	env =  DubinGym(start_point, target_point)
 	max_steps = int(1e6)
 
 	state = env.reset()

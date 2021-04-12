@@ -7,8 +7,8 @@ matplotlib
 pytorch
 
 ### For implementation using custom algorithm
-python dubins_gym.py
+```python dubins_gym.py```
 
 ### For implementation using stable baselines
-python dubin_gymenv.py
+```python dubin_gymenv.py```
 

@@ -1,1 +1,1 @@
-# dubin_model_gymenv
+# OpenAI Gym Compatible Dubin's Car Model

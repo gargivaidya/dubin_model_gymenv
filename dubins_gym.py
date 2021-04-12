@@ -5,6 +5,9 @@ import gym
 from gym import spaces
 import time
 
+from stable_baselines.sac.policies import MlpPolicy
+from stable_baselines import SAC
+
 MAX_STEER = np.pi/3
 MAX_SPEED = 10.0
 MIN_SPEED = 0.
@@ -32,8 +35,8 @@ class DubinGym(gym.Env):
 		self.action_space = spaces.Box(np.array([0., -1.]), np.array([1., 1.]), dtype = np.float32)
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
-		self.observation_space = spaces.Box(low,high,dtype=np.float32)
-		self.target = [target_point[0]/MAX_X, target_point[1]/MAX_Y]
+		self.observation_space = spaces.Box(low, high, dtype=np.float32)
+		self.target = [target_point[0]/MAX_X, target_point[1]/MAX_Y, target_point[2]]
 		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
 		self.action = [0., 0.]
 
@@ -180,10 +183,10 @@ class DubinGym(gym.Env):
 def plot_car(n_state, action, cabcolor="-r", truckcolor="-k"):  # pragma: no cover
 	print("Plotting Car")
 
-	x = n_state[0] #self.pose[0]
-	y = n_state[1] #self.pose[1]
+	x = n_state[0]*MAX_X #self.pose[0]
+	y = n_state[1]*MAX_Y #self.pose[1]
 	yaw = n_state[2] #self.pose[2]
-	steer = action[1] #self.action[1]
+	steer = action[1]*MAX_STEER #self.action[1]
 
 	outline = np.array([[-BACKTOWHEEL, (LENGTH - BACKTOWHEEL), (LENGTH - BACKTOWHEEL), -BACKTOWHEEL, -BACKTOWHEEL],
 						[WIDTH / 2, WIDTH / 2, - WIDTH / 2, -WIDTH / 2, WIDTH / 2]])
@@ -253,22 +256,20 @@ def main():
 	yaw = [state[2]]
 
 	for i in range(max_steps):
-		action = [1.0, -0.8]
+		action = [1.0, 0.]
 		n_state,reward,done,info = env.step(action)
 		x.append(n_state[0]*MAX_X)
 		y.append(n_state[1]*MAX_Y)
 		yaw.append(n_state[2])
 		# env.render()
 		# plot_car(n_state, action)
-  		# pragma: no cover
-		# plt.cla()
-		# for stopping simulation with the esc key.
+		plt.cla()
 		plt.gcf().canvas.mpl_connect('key_release_event',
 				lambda event: [exit(0) if event.key == 'escape' else None])
 		# plt.plot(n_state[0]*MAX_X, n_state[1]*MAX_Y, "ob", markersize = 2, label="trajectory")
 		plt.plot(x*10, y*10, "ob", markersize = 2, label="trajectory")
 		plt.plot(target_point[0], target_point[1], "xg", label="target")
-		# plot_car(n_state, action)
+		plot_car(n_state, action)
 		plt.axis("equal")
 		plt.grid(True)
 		# plt.title("Time[s]:" + str(np.round(time, 2)) + ", speed[km/h]:" + str(np.round(self.action[0] * 3.6, 2)))

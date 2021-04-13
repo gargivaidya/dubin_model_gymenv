@@ -12,3 +12,5 @@ pytorch
 ### For implementation using stable baselines
 ```python dubin_gymenv.py```
 
+Dubin's Visualization Model source - https://github.com/AtsushiSakai/PythonRobotics
+

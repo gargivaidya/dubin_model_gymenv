@@ -61,11 +61,11 @@ class DubinGym(gym.Env):
 		head = math.atan((y_target-y)/(x_target-x+0.01))
 		return -1*(abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
 	
-	def get_distance([x1, y1, th1], [x2, y2, th2]):
-		return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+	def get_distance(self,x1,x2):
+		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
 
-	def get_heading(self):
-		return alpha
+	def get_heading(self, x1,x2):
+		return math.atan2((x2[1] - x1[1]), (x2[0] - x1[0]))
 
 	def reward(self):
 		ld = get_distance([])

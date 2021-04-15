@@ -60,6 +60,21 @@ class DubinGym(gym.Env):
 		yaw_car = self.pose[2]
 		head = math.atan((y_target-y)/(x_target-x+0.01))
 		return -1*(abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
+	
+	def get_distance(self):
+		return d
+
+	def get_heading(self):
+		return alpha
+
+	def reward(self):
+		ld = get_distance([])
+		cross_track_err 
+		return reward
+
+	def next_waypoint(self):
+		index = arg.min(get_distance())
+		return index
 
 	def step(self,action):
 		reward = 0

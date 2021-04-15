@@ -73,8 +73,13 @@ class DubinGym(gym.Env):
 		return reward
 
 	def next_waypoint(self):
-		index = arg.min(get_distance())
-		return index
+		d_to_waypoints = np.zeros(self.n_waypoints):
+
+		for i in range(self.n_waypoints):
+			d_to_waypoints[i] = self.get_distance(self.waypoints[i], self.pose)
+
+		prev_ind, next_ind = np.argpartition(d_to_waypoints, 2)[:2]
+		return prev_ind, next_ind
 
 	def step(self,action):
 		reward = 0

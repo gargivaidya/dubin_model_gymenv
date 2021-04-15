@@ -30,7 +30,7 @@ show_animation = True
 
 class DubinGym(gym.Env):
 
-	def __init__(self,start_point, target_point):
+	def __init__(self,start_point, waypoints, target_point, n_waypoints):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
 
@@ -38,12 +38,14 @@ class DubinGym(gym.Env):
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
+		self.waypoints = waypoints
 		self.target = [target_point[0]/MAX_X, target_point[1]/MAX_Y, target_point[2]]
 		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
 		self.action = [0., 0.]
 		self.traj_x = [self.pose[0]*MAX_X]
 		self.traj_y = [self.pose[1]*MAX_Y]
 		self.traj_yaw = [self.pose[2]]
+		self.n_waypoints = n_waypoints
 
 	def reset(self): 
 		self.pose = np.array([0., 0., 1.57])

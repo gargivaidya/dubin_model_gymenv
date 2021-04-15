@@ -8,8 +8,8 @@ import itertools
 import argparse
 import datetime
 
-from stable_baselines.sac.policies import MlpPolicy
-from stable_baselines import SAC
+#from stable_baselines.sac.policies import MlpPolicy
+#from stable_baselines import SAC
 import torch
 from sac import SAC
 from replay_memory import ReplayMemory
@@ -93,6 +93,7 @@ class DubinGym(gym.Env):
 		self.traj_y = [self.pose[1]*MAX_Y]
 		self.traj_yaw = [self.pose[2]]
 		self.n_waypoints = n_waypoints
+		self.d_to_waypoints = np.zeros(n_waypoints)
 
 	def reset(self): 
 		self.pose = np.array([0., 0., 1.57])
@@ -108,9 +109,51 @@ class DubinGym(gym.Env):
 		y = self.pose[1]
 		yaw_car = self.pose[2]
 		head = math.atan((y_target-y)/(x_target-x+0.01))
-		print(self.get_distance([0,0,1.57], [0,5, 1.57]))
-		print(self.get_heading([0,0,1.57], [0,5, 1.57]))
-		return -1*(abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
+		#print(self.get_distance([0,0,1.57], [0,5, 1.57]))
+		#print(self.get_heading([0,0,1.57], [0,5, 1.57]))
+		"""
+		alpha = Difference (Angle made by the target waypoint wrt to x-axis(?),Current pose of the car)
+		"""
+
+		alpha,idx_nxt = self.getAngularSeperationAndIdx()
+		print('angle alpha', alpha)
+		ld = self.d_to_waypoints[idx_nxt]
+		crossTrackError = math.sin(alpha) * ld
+
+		return -1*( (2*crossTrackError/(ld*ld)) + abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
+
+	"""
+
+	"""
+
+	def getAngularSeperationAndIdx(self):
+		#idx = self.getClosestIndex()
+		idx_prev,idx_nxt = self.next_index()
+		#self.waypoints[idx_nxt]
+		a = self.get_heading(self.pose,self.waypoints[idx_nxt])
+		b = self.pose[2]
+
+		#print('heading',a)
+		return abs(a-b),idx_nxt
+
+
+	"""
+	Redundant function
+	"""
+	def getClosestIndex(self):
+		closestDist = 10000
+		idx = 0
+		idxCount = 0
+		for point in self.waypoints:
+			idxCount = idxCount + 1
+			x1 = [self.pose[0],self.pose[1]]
+			if(self.get_distance(x1,[point[0],point[1]])<closestDist):
+				closestDist = self.get_distance(x1,[point[0],point[1]])
+				idx = idxCount
+				print('closestDist',closestDist)
+
+		return idx
+
 
 	def get_distance(self,x1,x2):
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
@@ -118,18 +161,13 @@ class DubinGym(gym.Env):
 	def get_heading(self, x1,x2):
 		return math.atan2((x2[1] - x1[1]), (x2[0] - x1[0]))
 
-	def reward(self):
-		ld = get_distance([])
-		cross_track_err 
-		return reward
-
 	def next_index(self):
-		d_to_waypoints = np.zeros(self.n_waypoints)
+		self.d_to_waypoints = np.zeros(self.n_waypoints)
 
 		for i in range(self.n_waypoints):
-			d_to_waypoints[i] = self.get_distance(self.waypoints[i], self.pose)
+			self.d_to_waypoints[i] = self.get_distance(self.waypoints[i], self.pose)
 
-		prev_ind, next_ind = np.argpartition(d_to_waypoints, 2)[:2]
+		prev_ind, next_ind = np.argpartition(self.d_to_waypoints, 2)[:2]
 		return prev_ind, next_ind
 
 	def step(self,action):

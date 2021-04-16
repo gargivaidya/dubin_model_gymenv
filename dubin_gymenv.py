@@ -116,7 +116,7 @@ class DubinGym(gym.Env):
 		"""
 
 		alpha,idx_nxt = self.getAngularSeperationAndIdx()
-		print('angle alpha', alpha)
+		# print('angle alpha', alpha)
 		ld = self.d_to_waypoints[idx_nxt]
 		crossTrackError = math.sin(alpha) * ld
 
@@ -128,7 +128,7 @@ class DubinGym(gym.Env):
 
 	def getAngularSeperationAndIdx(self):
 		#idx = self.getClosestIndex()
-		idx_prev,idx_nxt = self.next_index()
+		idx_nxt = self.next_index()
 		#self.waypoints[idx_nxt]
 		a = self.get_heading(self.pose,self.waypoints[idx_nxt])
 		b = self.pose[2]
@@ -168,7 +168,8 @@ class DubinGym(gym.Env):
 			self.d_to_waypoints[i] = self.get_distance(self.waypoints[i], self.pose)
 
 		prev_ind, next_ind = np.argpartition(self.d_to_waypoints, 2)[:2]
-		return prev_ind, next_ind
+
+		return max(prev_ind, next_ind)
 
 	def step(self,action):
 		reward = 0

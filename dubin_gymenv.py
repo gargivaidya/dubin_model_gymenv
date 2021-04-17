@@ -120,7 +120,7 @@ class DubinGym(gym.Env):
 		ld = self.d_to_waypoints[idx_nxt]
 		crossTrackError = math.sin(alpha) * ld
 
-		return -1*( (2*crossTrackError/(ld*ld)) + abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
+		return -1*( crossTrackError + abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
 
 	"""
 
@@ -134,8 +134,7 @@ class DubinGym(gym.Env):
 		b = self.pose[2]
 
 		#print('heading',a)
-		return abs(a-b),idx_nxt
-
+		return abs(a-b), idx_nxt
 
 	"""
 	Redundant function

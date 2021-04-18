@@ -37,7 +37,7 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=50000, metavar='N',
+parser.add_argument('--num_steps', type=int, default=100000, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
@@ -51,7 +51,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
 parser.add_argument('--cuda', action="store_true",
                     help='run on CUDA (default: False)')
-parser.add_argument('--max_episode_length', type=int, default=400, metavar='N',
+parser.add_argument('--max_episode_length', type=int, default=1000, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
@@ -207,9 +207,9 @@ class DubinGym(gym.Env):
 		plt.gcf().canvas.mpl_connect('key_release_event',
 				lambda event: [exit(0) if event.key == 'escape' else None])
 		plt.plot(self.traj_x*10, self.traj_y*10, "ob", markersize = 2, label="trajectory")
-		plt.plot(self.waypoints[0][0]*MAX_X, self.waypoints[0][1]*MAX_Y, "^r", label="waypoint")
-		plt.plot(self.waypoints[1][0]*MAX_X, self.waypoints[1][1]*MAX_Y, "^r", label="waypoint")
-		plt.plot(self.waypoints[2][0]*MAX_X, self.waypoints[2][1]*MAX_Y, "^r", label="waypoint")
+		for i in range(self.n_waypoints):
+			plt.plot(self.waypoints[i][0]*MAX_X, self.waypoints[i][1]*MAX_Y, "^r", label="waypoint")
+
 		plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
 		self.plot_car()
 		plt.axis("equal")
@@ -306,9 +306,9 @@ class DubinGym(gym.Env):
 def main():
 
 	start_point = [0., 0., 1.57]
-	target_point = [4., 4., 1.57]
-	waypoints = [[1., 1., 1.57],[2., 2., 1.57],[3., 3., 1.57]]
-	n_waypoints = 3
+	target_point = [0., 9., 1.57]
+	waypoints = [[0., 1., 1.57],[1., 2., 1.57],[3., 2., 1.57], [4., 3., 1.57], [5., 4., 1.57], [6., 5., 1.57], [5., 6., 1.57], [4., 7., 1.57], [2., 8., 1.57]]
+	n_waypoints = 9
 	env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
 	max_steps = int(1e6)
 
@@ -387,7 +387,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("dubin_straight", suffix = "1")
+	agent.save_model("right_curve", suffix = "1")
 	return True
 
 	## Environment Test

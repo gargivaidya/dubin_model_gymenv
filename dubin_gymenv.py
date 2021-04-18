@@ -51,12 +51,12 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
 parser.add_argument('--cuda', action="store_true",
                     help='run on CUDA (default: False)')
-parser.add_argument('--max_episode_length', type=int, default=300, metavar='N',
+parser.add_argument('--max_episode_length', type=int, default=400, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
 
-MAX_STEER = np.pi/3
+MAX_STEER = np.pi/2
 MAX_SPEED = 10.0
 MIN_SPEED = 0.
 THRESHOLD_DISTANCE_2_GOAL = 0.02
@@ -81,11 +81,11 @@ class DubinGym(gym.Env):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
 
-		self.action_space = spaces.Box(np.array([0., -1.]), np.array([1., 1.]), dtype = np.float32)
+		self.action_space = spaces.Box(np.array([0., -1.57]), np.array([1., 1.57]), dtype = np.float32)
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
-		self.waypoints = waypoints
+		self.waypoints = np.divide(waypoints, MAX_X)
 		self.target = [target_point[0]/MAX_X, target_point[1]/MAX_Y, target_point[2]]
 		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
 		self.action = [0., 0.]
@@ -120,7 +120,7 @@ class DubinGym(gym.Env):
 		ld = self.d_to_waypoints[idx_nxt]
 		crossTrackError = math.sin(alpha) * ld
 
-		return -1*( crossTrackError + abs(x - x_target) + abs(y - y_target) + abs (head - yaw_car))
+		return -1*( crossTrackError/10. + abs(x - x_target)/10. + abs(y - y_target)/10. + abs (head - yaw_car)/1.57)/4
 
 	"""
 
@@ -207,6 +207,9 @@ class DubinGym(gym.Env):
 		plt.gcf().canvas.mpl_connect('key_release_event',
 				lambda event: [exit(0) if event.key == 'escape' else None])
 		plt.plot(self.traj_x*10, self.traj_y*10, "ob", markersize = 2, label="trajectory")
+		plt.plot(self.waypoints[0][0]*MAX_X, self.waypoints[0][1]*MAX_Y, "^r", label="waypoint")
+		plt.plot(self.waypoints[1][0]*MAX_X, self.waypoints[1][1]*MAX_Y, "^r", label="waypoint")
+		plt.plot(self.waypoints[2][0]*MAX_X, self.waypoints[2][1]*MAX_Y, "^r", label="waypoint")
 		plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
 		self.plot_car()
 		plt.axis("equal")
@@ -232,6 +235,7 @@ class DubinGym(gym.Env):
 			throttle = MAX_SPEED
 		elif throttle < MIN_SPEED:
 			throttle = MIN_SPEED
+
 
 		state[0] = state[0] + throttle * math.cos(state[2]) * DT
 		state[1] = state[1] + throttle * math.sin(state[2]) * DT
@@ -302,8 +306,8 @@ class DubinGym(gym.Env):
 def main():
 
 	start_point = [0., 0., 1.57]
-	target_point = [0., 5., 1.57]
-	waypoints = [[0., 1., 1.57],[0., 2.5, 1.57],[0., 4., 1.57]]
+	target_point = [4., 4., 1.57]
+	waypoints = [[1., 1., 1.57],[2., 2., 1.57],[3., 3., 1.57]]
 	n_waypoints = 3
 	env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
 	max_steps = int(1e6)

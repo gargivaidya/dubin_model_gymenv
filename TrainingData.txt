@@ -1,0 +1,28 @@
+Model - 
+===========================================================================
+start_point = [0., 0., 1.57]
+target_point = [-4., 4., 1.57]
+waypoints = [[-1., 1., 1.57],[-2., 2., 1.57],[-3., 3., 1.57]]
+n_waypoints = 3
+env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
+actor_path = "models/sac_actor_dubin_straight_1"
+critic_path = "models/sac_critic_dubin_straight_1"
+===========================================================================
+%Implemented for multiple waypoints and longer trajectory
+start_point = [0., 0., 1.57]
+target_point = [0., 9., 1.57]
+waypoints = [[1., 1., 1.57],[2., 2., 1.57],[3., 2., 1.57], [4., 3., 1.57], [5., 4., 1.57], [6., 5., 1.57], [5., 6., 1.57], [4., 7., 1.57], [2., 8., 1.57]]
+n_waypoints = 9
+env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
+actor_path = "models/sac_actor_right_curve_1"
+critic_path = "models/sac_critic_right_curve_1"
+===========================================================================
+%Implemented sliding look ahead window
+start_point = [0., 0., 1.57]
+target_point = [4., 8., 1.57]
+waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57]]
+n_waypoints = 3 #look ahead waypoints
+env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
+actor_path = "models/sac_actor_right_curve_2"
+critic_path = "models/sac_critic_right_curve_2"
+===========================================================================

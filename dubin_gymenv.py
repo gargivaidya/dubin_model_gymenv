@@ -159,8 +159,8 @@ class DubinGym(gym.Env):
 		alpha = head_to_waypoint - self.pose[2]
 		ld = self.d_to_waypoints[self.closest_idx]
 		crossTrackError = math.sin(alpha) * ld
-
-		return -1*( 5*abs(crossTrackError)/10. + abs(x - x_target)/10. + abs(y - y_target)/10. + abs (head_to_target - yaw_car)/1.57)/8
+		#print('reward', -1*( 5*abs(crossTrackError)/10. + abs(x - x_target)/10. + abs(y - y_target)/10. + abs (head_to_target - yaw_car)/1.57)/8)
+		return -1*( (5*abs(crossTrackError)/10.) + (abs(x - x_target)/10.) + (abs(y - y_target)/10.) + (abs (head_to_target - yaw_car)/1.57))/8
 
 	def get_distance(self,x1,x2):
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)

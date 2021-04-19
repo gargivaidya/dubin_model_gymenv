@@ -160,7 +160,7 @@ class DubinGym(gym.Env):
 		ld = self.d_to_waypoints[self.closest_idx]
 		crossTrackError = math.sin(alpha) * ld
 		#print('reward', -1*( 5*abs(crossTrackError)/10. + abs(x - x_target)/10. + abs(y - y_target)/10. + abs (head_to_target - yaw_car)/1.57)/8)
-		return -1*( (5*abs(crossTrackError)/10.) + (abs(x - x_target)/10.) + (abs(y - y_target)/10.) + (abs (head_to_target - yaw_car)/1.57))/8
+		return -1*( (5*abs(crossTrackError)/10.) + (abs(x+x - x_target)/10.) + (abs(y+y - y_target)/10.) + (abs (head_to_target - yaw_car)/1.57))/8
 
 	def get_distance(self,x1,x2):
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
@@ -401,7 +401,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("right_curve", suffix = "2")
+	agent.save_model("moving_origin_", suffix = "2")
 	return True
 
 	## Environment Test

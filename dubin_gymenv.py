@@ -37,7 +37,7 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=100000, metavar='N',
+parser.add_argument('--num_steps', type=int, default=50000, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
@@ -322,7 +322,8 @@ def main():
 	start_point = [0., 0., 1.57]
 	target_point = [4., 8., 1.57]
 	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57]]
-	n_waypoints = 3 #look ahead waypoints
+	n_waypoints = 1 #look ahead waypoints
+	
 	env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
 	max_steps = int(1e6)
 

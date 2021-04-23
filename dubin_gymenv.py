@@ -132,7 +132,7 @@ class DubinGym(gym.Env):
 	"""
 
 	def reset(self): 
-		self.pose = np.array([0., 0., 1.57])
+		self.pose = np.array([0., 0., 1.57]) # Resets to Origin
 		self.traj_x = [0.*MAX_X]
 		self.traj_y = [0.*MAX_Y]
 		self.traj_yaw = [1.57]

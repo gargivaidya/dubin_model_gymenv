@@ -26,3 +26,4 @@ env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
 actor_path = "models/sac_actor_right_curve_2"
 critic_path = "models/sac_critic_right_curve_2"
 ===========================================================================
+All look ahead waypoints in the reward, window = 2, 

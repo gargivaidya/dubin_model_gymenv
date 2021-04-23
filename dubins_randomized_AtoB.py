@@ -86,7 +86,7 @@ class DubinGym(gym.Env):
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
 		self.target = [0./MAX_X, 0./MAX_Y, 1.57]
-		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, 1.57]
+		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
 		self.action = [0., 0.]
 		self.traj_x = [self.pose[0]*MAX_X]
 		self.traj_y = [self.pose[1]*MAX_Y]
@@ -311,9 +311,8 @@ class DubinGym(gym.Env):
 
 def main():
 
-	env =  DubinGym([1., 0.])
+	env =  DubinGym([1., 0., -1.57])
 	## Model Training
-
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	# Memory
 	memory = ReplayMemory(args.replay_size, args.seed)

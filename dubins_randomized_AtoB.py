@@ -60,7 +60,7 @@ args = parser.parse_args()
 MAX_STEER = np.pi/3
 MAX_SPEED = 10.0
 MIN_SPEED = 0.
-THRESHOLD_DISTANCE_2_GOAL = 0.01
+THRESHOLD_DISTANCE_2_GOAL = 0.02
 MAX_X = 5.
 MAX_Y = 5.
 THETA0 = np.pi/4
@@ -149,7 +149,7 @@ class DubinGym(gym.Env):
 
 	def reset(self): 
 		x = random.uniform(-1., 1.)
-		y = math.sqrt(1. - x**2)
+		y = random.choice([-1., 1.])*math.sqrt(1. - x**2)
 		theta = self.get_heading([x, y], self.target)
 		yaw = random.uniform(theta - THETA0, theta + THETA0)
 		self.pose = np.array([x/MAX_X, y/MAX_Y, yaw])
@@ -174,7 +174,7 @@ class DubinGym(gym.Env):
 		ld = self.get_distance(self.pose, self.target)
 		crossTrackError = math.sin(alpha) * ld
 
-		return -1*( 5*abs(crossTrackError) + abs(x - x_target) + abs(y - y_target) + abs (head_to_target - yaw_car)/1.57)/8
+		return -1*( 3*abs(crossTrackError) + abs(x - x_target) + abs(y - y_target) + 3*abs (head_to_target - yaw_car)/1.57)/8
 
 	def get_distance(self,x1,x2):
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
@@ -388,7 +388,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("random_initial", suffix = "1")
+	agent.save_model("random_initial", suffix = "2")
 	return True
 
 	# # Environment Test

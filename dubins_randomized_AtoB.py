@@ -8,9 +8,6 @@ import itertools
 import argparse
 import datetime
 import random
-
-#from stable_baselines.sac.policies import MlpPolicy
-#from stable_baselines import SAC
 import torch
 from sac import SAC
 from replay_memory import ReplayMemory
@@ -56,7 +53,7 @@ parser.add_argument('--max_episode_length', type=int, default=800, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
-
+# Training constants
 MAX_STEER = np.pi/3
 MAX_SPEED = 10.0
 MIN_SPEED = 0.
@@ -81,16 +78,16 @@ class DubinGym(gym.Env):
 	def __init__(self, start_point):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
-		self.action_space = spaces.Box(np.array([0., -1.57]), np.array([1., 1.57]), dtype = np.float32)
-		low = np.array([-1.,-1.,-4.])
-		high = np.array([1.,1.,4.])
-		self.observation_space = spaces.Box(low, high, dtype=np.float32)
-		self.target = [0./MAX_X, 0./MAX_Y, 1.57]
-		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
-		self.action = [0., 0.]
-		self.traj_x = [self.pose[0]*MAX_X]
-		self.traj_y = [self.pose[1]*MAX_Y]
-		self.traj_yaw = [self.pose[2]]
+		self.action_space = spaces.Box(np.array([0., -1.57]), np.array([1., 1.57]), dtype = np.float32) # Action space for [throttle, steer]
+		low = np.array([-1.,-1.,-4.]) # low range of observation space
+		high = np.array([1.,1.,4.]) # high range of observation space
+		self.observation_space = spaces.Box(low, high, dtype=np.float32) # Observation space for [x, y, theta]
+		self.target = [0./MAX_X, 0./MAX_Y, 1.57] # Final goal point of trajectory
+		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]] # Current pose of car
+		self.action = [0., 0.] # Action 
+		self.traj_x = [self.pose[0]*MAX_X] # List of tracked trajectory for rendering
+		self.traj_y = [self.pose[1]*MAX_Y] # List of tracked trajectory for rendering
+		self.traj_yaw = [self.pose[2]] # List of tracked trajectory for rendering
 
 	"""
 	Redundant functions
@@ -147,41 +144,45 @@ class DubinGym(gym.Env):
 	"""
 
 	def reset(self): 
-		x = random.uniform(-1., 1.)
-		y = random.choice([-1., 1.])*math.sqrt(1. - x**2)
-		theta = self.get_heading([x, y], self.target)
-		yaw = random.uniform(theta - THETA0, theta + THETA0)
-		self.pose = np.array([x/MAX_X, y/MAX_Y, yaw])
+		x = random.uniform(-1., 1.) # Reset to random point on unit circle
+		y = random.choice([-1., 1.])*math.sqrt(1. - x**2) # Reset to random point on unit circle
+		theta = self.get_heading([x, y], self.target) # Calculate heading of random point
+		yaw = random.uniform(theta - THETA0, theta + THETA0) # Reset to random yaw
+		self.pose = np.array([x/MAX_X, y/MAX_Y, yaw]) # Set current position
 		self.traj_x = [x]
 		self.traj_y = [y]
 		self.traj_yaw = [yaw]
 		return np.array(self.pose)
 
 	def get_reward(self):
-		x_target = self.target[0]
-		y_target = self.target[1]
-		yaw_target = self.target[2]
+		x_target = self.target[0] # Final goal point in the trajectory
+		y_target = self.target[1] # Final goal point in the trajectory
+		yaw_target = self.target[2] # Final goal point in the trajectory
 		x = self.pose[0]
 		y = self.pose[1]
 		yaw_car = self.pose[2]
-		head_to_target = self.get_heading(self.pose, self.target)
+		head_to_target = self.get_heading(self.pose, self.target) # Heading to the target
 		"""
 		alpha = Difference (Angle made by the target waypoint wrt to x-axis(?),Current pose of the car)
 		"""
 		# alpha,idx_nxt = self.getAngularSeperationAndIdx()
-		alpha = head_to_target - self.pose[2]
-		ld = self.get_distance(self.pose, self.target)
-		crossTrackError = math.sin(alpha) * ld
+		alpha = head_to_target - self.pose[2]  # Heading difference for cross track error calculation
+		ld = self.get_distance(self.pose, self.target) # Distance to closest waypoint
+		crossTrackError = math.sin(alpha) * ld # Calulcation of cross-track error
 
 		return -1*( 3*abs(crossTrackError) + abs(x - x_target) + abs(y - y_target) + 3*abs (head_to_target - yaw_car)/1.57)/8
+		# reward includes cross track error, along-track error and heading error
 
 	def get_distance(self,x1,x2):
+		# Distance between points x1 and x2
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
 
 	def get_heading(self, x1,x2):
+		# Heading between points x1,x2 with +X axis
 		return math.atan2((x2[1] - x1[1]), (x2[0] - x1[0]))		
 
 	def step(self,action):
+		# Take step as per policy
 		reward = 0
 		done = False
 		info = {}
@@ -190,15 +191,18 @@ class DubinGym(gym.Env):
 
 
 		if ((abs(self.pose[0]) < 1.) and (abs(self.pose[1]) < 1.)):
-
+			# If car is inside MAX_X, MAX_Y grid
 			if(abs(self.pose[0]-self.target[0])<THRESHOLD_DISTANCE_2_GOAL and  abs(self.pose[1]-self.target[1])<THRESHOLD_DISTANCE_2_GOAL):
+				# If car has reached the final goal
 				reward = 10            
 				done = True
 				print('Goal Reached')
 				print("Distance : {:.3f} {:.3f}".format(abs(self.pose[0]-self.target[0])*MAX_X, abs(self.pose[1]-self.target[1])*MAX_Y))
 			else:
+				# If not reached the goal
 				reward = self.get_reward()	
 		else :
+			# If car is outside MAX_X, MAX_Y grid
 			done = True
 			reward = -1.
 			print("Outside range")
@@ -207,6 +211,7 @@ class DubinGym(gym.Env):
 		return np.array(self.pose), reward, done, info     
 
 	def render(self):
+		# Storing tracked trajectory 
 		self.traj_x.append(self.pose[0]*MAX_X)
 		self.traj_y.append(self.pose[1]*MAX_Y)
 		self.traj_yaw.append(self.pose[2])
@@ -217,6 +222,7 @@ class DubinGym(gym.Env):
 				lambda event: [exit(0) if event.key == 'escape' else None])
 		plt.plot(self.traj_x, self.traj_y, "ob", markersize = 2, label="trajectory")
 		plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
+		# Rendering the car and action taken
 		self.plot_car()
 		plt.axis("equal")
 		plt.grid(True)
@@ -225,10 +231,11 @@ class DubinGym(gym.Env):
 		
 
 	def close(self):
+		# For Gym API compatibility
 		pass
 
 	def update_state(self, state, a, DT):
-		# print("Updating state")
+		# Update the pose as per Dubin's equations
 		throttle = a[0]
 		steer = a[1]
 
@@ -251,6 +258,7 @@ class DubinGym(gym.Env):
 
 	def plot_car(self, cabcolor="-r", truckcolor="-k"):  # pragma: no cover
 		# print("Plotting Car")
+		# Scale up the car pose to MAX_X, MAX_Y grid
 		x = self.pose[0]*MAX_X #self.pose[0]
 		y = self.pose[1]*MAX_Y #self.pose[1]
 		yaw = self.pose[2] #self.pose[2]
@@ -310,21 +318,23 @@ class DubinGym(gym.Env):
 		plt.plot(x, y, "*") 
 
 def main():
-
+	### Declare variables for environment
 	env =  DubinGym([1., 0., -1.57])
 	## Model Training
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	# Memory
 	memory = ReplayMemory(args.replay_size, args.seed)
-	#Tesnorboard
+	#Tensorboard
 	writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), 'DeepracerGym',
 														 args.policy, "autotune" if args.automatic_entropy_tuning else ""))
 
+	# Training parameters
 	total_numsteps = 0
 	updates = 0
 	num_goal_reached = 0
 
 	for i_episode in itertools.count(1):
+		# Training Loop
 		# print("New episode")
 		episode_reward = 0
 		episode_steps = 0
@@ -386,10 +396,10 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("random_initial", suffix = "2")
+	agent.save_model("random_initial", suffix = "2") # Rename it as per training scenario
 	return True
 
-	# # Environment Test
+	## Environment Quick Test
 	# max_steps = int(1e6)
 	# state = env.reset()
 	# env.render()

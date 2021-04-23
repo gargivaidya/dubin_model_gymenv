@@ -78,16 +78,15 @@ show_animation = True
 
 class DubinGym(gym.Env):
 
-	def __init__(self):
+	def __init__(self, start_point):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
-
 		self.action_space = spaces.Box(np.array([0., -1.57]), np.array([1., 1.57]), dtype = np.float32)
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
 		self.target = [0./MAX_X, 0./MAX_Y, 1.57]
-		self.pose = [0./MAX_X, 0./MAX_Y, 1.57]
+		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, 1.57]
 		self.action = [0., 0.]
 		self.traj_x = [self.pose[0]*MAX_X]
 		self.traj_y = [self.pose[1]*MAX_Y]
@@ -312,7 +311,7 @@ class DubinGym(gym.Env):
 
 def main():
 
-	env =  DubinGym()
+	env =  DubinGym([1., 0.])
 	## Model Training
 
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)

@@ -11,9 +11,6 @@ import torch
 from sac import SAC
 from replay_memory import ReplayMemory
 from torch.utils.tensorboard import SummaryWriter
-
-### Import Custom Dubin's Gym Environment File
-# from dubin_gymenv import DubinGym
 from dubins_randomized_AtoB import DubinGym
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
@@ -59,16 +56,16 @@ args = parser.parse_args()
 def main():
 
 	### Declare variables for environment
-	# start_point = [0., 0., 1.57]
+	start_point = [0., 0., 1.57]
 	# target_point = [4., 8., 1.57]
 	# waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57]]
 	# n_waypoints = 1 #look ahead waypoints
 	# env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
-	env =  DubinGym()
+	env =  DubinGym(start_point)
 
 	### Load your trained model
-	actor_path = "models/sac_actor_random_initial_1"
-	critic_path = "models/sac_critic_random_initial_1"
+	actor_path = "models/sac_actor_random_initial_2"
+	critic_path = "models/sac_critic_random_initial_2"
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	agent.load_model(actor_path, critic_path)
 

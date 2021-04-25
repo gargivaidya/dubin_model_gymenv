@@ -63,7 +63,17 @@ def pose_transform(pose, target, subtract):
 		return pose[0]+target[0], pose[1]+target[1]
 
 def get_distance(x1,x2):
-		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
+	return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
+
+def get_closest_idx(waypoints, pose):
+	# Get closest waypoint index from current position of car
+	d_to_waypoints = np.zeros(len(waypoints)) 
+
+	for i in range(len(waypoints)):
+		d_to_waypoints[i] = get_distance(waypoints[i], pose) # Calculate distance from each of the waypoints 
+
+	prev_ind, next_ind = np.argpartition(d_to_waypoints, 2)[:2] # Find the index to two least distance waypoints
+	return max(prev_ind, next_ind)  # Next waypoint to track is higher of the two indices in the sequence of waypoints
 
 
 def main():
@@ -71,9 +81,8 @@ def main():
 	### Declare variables for environment
 	start_point = [0., 0., 1.57]
 	# target_point = [4., 8., 1.57]
-	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57], [4., 8., 1.57]]
-	# n_waypoints = 1 #look ahead waypoints
-	# env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
+	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[0.5, 3., 1.57], [1., 4., 1.57], [2., 5., 1.57], [3., 6., 1.57], [3., 7., 1.57], [4., 8., 1.57]]
+	#waypoints = [[-1., 0., 1.57]]
 
 	env =  DubinGym(start_point)
 
@@ -86,17 +95,19 @@ def main():
 	### Evaluation Parameters
 	num_goal_reached = 0
 	max_steps = 200
-	num_iterations = 10
+	num_iterations = 3
 
 	### Reset and Render
 	state = env.reset()
-	env.render()
+	#Fix the target for the trained model
 	env.target = [0, 0, 1.57]
-
-	current_pose = start_point
 
 	### Evaluation Loop	
 	for ep in range(num_iterations):
+
+		print('########### Iteration: {} ###########'.format(ep+1))
+		goals_in_iter = 0
+		current_pose = [x for x in start_point]
 
 		for i_waypoint in range(len(waypoints)):
 
@@ -105,7 +116,7 @@ def main():
 
 			# Transform pose to real world
 			if i_waypoint > 0:
-				current_pose[0], current_pose[1] = pose_transform(state, target, False)
+				current_pose[0], current_pose[1] = pose_transform([state[0]*MAX_X, state[1]*MAX_Y], target, False)
 				current_pose[2] = state[2]
 
 			#Update target point
@@ -122,27 +133,35 @@ def main():
 				env.render()
 				ep_reward += reward
 
-				print("\r Car is at : {}, reward : {:.4f}".format(next_state, reward), end = '\r')
+				#print("\r Car is at : {}, reward : {:.4f}".format(next_state, reward), end = '\r')
 
 				state = next_state
 
 				# Check if target needs to be updated
-				if i_waypoint < len(waypoints)-1:
+				# if i_waypoint < len(waypoints)-1:
+				# 	x, y = pose_transform(state, target, False)
+				# 	if get_distance([x,y], waypoints[i_waypoint+1]) < (get_distance([x,y], target) + get_distance(target, waypoints[i_waypoint+1])):
+				# 		done = True
+
+				# Check if target needs to be updated
+				if i_waypoint > 0:
 					x, y = pose_transform(state, target, False)
-					if get_distance([x,y], waypoints[i_waypoint+1]) < (get_distance([x,y], target) + get_distance(target, waypoints[i_waypoint+1])):
+					if get_closest_idx(waypoints, [x, y]) > i_waypoint:
 						done = True
 
 				# if done with current goal - reached or passed
 				if done:
 					# if goal_reached:
 					num_goal_reached += 1
+					goals_in_iter += 1
 					break
 
 
-			print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(ep, ep_reward, num_goal_reached))
+			print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(i_waypoint+1, ep_reward, num_goal_reached))
 
 		# Print current iteration statistics
-		print('##################')
+		print("Total Number of Times Goal Reached : {}/{}".format(goals_in_iter, len(waypoints)))
+		print('####################################')
 
 if __name__ == '__main__':
 	main()	

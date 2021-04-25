@@ -56,15 +56,33 @@ parser.add_argument('--max_episode_length', type=int, default=300, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
+MAX_X = 5.
+MAX_Y = 5.
+
+def pose_transform(pose, target, subtract):
+	if subtract:
+		return pose[0]-target[0], pose[1]-target[1]
+	else:
+		return pose[0]+target[0], pose[1]+target[1]
+
+def get_distance(x1,x2):
+		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
+
+
 def main():
 
 	### Declare variables for environment
-	# start_point = [0., 0., 1.57]
+	start_point = [0., 0., 1.57]
 	# target_point = [4., 8., 1.57]
-	# waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57]]
+	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[1., 3., 1.57], [2., 4., 1.57], [3., 5., 1.57], [4., 6., 1.57], [4., 7., 1.57], [4., 8., 1.57]]
 	# n_waypoints = 1 #look ahead waypoints
 	# env =  DubinGym(start_point, waypoints, target_point, n_waypoints)
-	env =  DubinGym()
+	
+	# Transform point coordinates
+	# function of start_point, next_waypoint
+
+	# Initialize environment
+	env =  DubinGym(start_point)
 
 	### Load your trained model
 	actor_path = "models/sac_actor_random_initial_1"
@@ -72,36 +90,66 @@ def main():
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	agent.load_model(actor_path, critic_path)
 
-	### Evaluation Parameters	
+	### Evaluation Parameters
 	num_goal_reached = 0
 	max_steps = 200
-	num_episodes = 10
+	num_iterations = 10
 
-	### Reset Environment and Render
+	### Reset and Render
 	state = env.reset()
 	env.render()
+	env.target = [0, 0, 1.57]
+
+	current_pose = start_point
 
 	### Evaluation Loop	
-	for ep in range(num_episodes):
-		ep_reward = 0.		
-		done = False
-		state = env.reset()
-		for _ in range(max_steps):
-			action = agent.select_action(state)
-			next_state, reward, done, _ = env.step(action)
+	for ep in range(num_iterations):
 
-			env.render()
-			ep_reward += reward	
+		for i_waypoint in range(len(waypoints)):
 
-			print("\r Car is at : {}, reward : {:.4f}".format(next_state, reward), end = '\r')		
-			if done:
+			ep_reward = 0.
+			done = False
 
-				num_goal_reached += 1
-				break
+			# Transform pose to real world
+			if i_waypoint > 0:
+				current_pose[0], current_pose[1] = pose_transform(state, target, False)
+				current_pose[2] = state[2]
 
-			state = next_state
+			#Update target point
+			target = waypoints[i_waypoint]
 
-		print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(ep, ep_reward, num_goal_reached))
+			#Transform pose to model architecture
+			x, y = pose_transform(current_pose, target, True)
+			state = env.pose = [x/MAX_X, y/MAX_Y, current_pose[2]]
+
+			for _ in range(max_steps):
+				action = agent.select_action(state)
+				next_state, reward, done, _ = env.step(action)
+
+				env.render()
+				ep_reward += reward
+
+				print("\r Car is at : {}, reward : {:.4f}".format(next_state, reward), end = '\r')
+
+				state = next_state
+
+				# Check if target needs to be updated
+				if i_waypoint < len(waypoints)-1:
+					x, y = pose_transform(state, target, False)
+					if get_distance([x,y], waypoints[i_waypoint+1]) < (get_distance([x,y], target) + get_distance(target, waypoints[i_waypoint+1])):
+						done = True
+
+				# if done with current goal - reached or passed
+				if done:
+					# if goal_reached:
+					num_goal_reached += 1
+					break
+
+
+			print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(ep, ep_reward, num_goal_reached))
+
+		# Print current iteration statistics
+		print('##################')
 
 if __name__ == '__main__':
-	main()
+	main()	

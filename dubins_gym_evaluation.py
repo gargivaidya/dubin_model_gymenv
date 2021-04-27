@@ -186,11 +186,14 @@ def main():
 
 	### Declare variables for environment
 	start_point = [0., 0., 1.57]
-	# target_point = [4., 8., 1.57]
 	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[0.5, 3., 1.57], [1., 4., 1.57], [2., 5., 1.57], [3., 6., 1.57], [3., 7., 1.57], [4., 8., 1.57]]
-	#waypoints = [[-1., 0., 1.57]]
-	traj = [[],[]]
+	#waypoints = [[0., 1., 1.57], [0.5, 2., 1.57],[1., 3., 1.57], [2., 3.5, 1.57], [3., 3.5, 1.57], [4., 3., 1.57], [4.5, 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
+	#waypoints = [[0., 1., 1.57], [1., 2., 1.57],[2., 3., 1.57], [3., 3., 1.57], [4., 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
+	#waypoints = [[0., 1., 1.57], [0.5, 2., 1.57],[1., 2.5, 1.57], [2., 3.5, 1.57], [3., 3.5, 1.57], [4., 2.5, 1.57], [4.5, 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
+	#waypoints = [[1., 2., 1.57], [3., 2., 1.57],[4., 0., 1.57]]
+	#waypoints = [[2., 0., 1.57], [1., -1., 1.57], [0., 0., 1.57]]
 
+	traj = [[],[]]
 	env =  DubinGym(start_point)
 
 	### Load your trained model
@@ -201,7 +204,7 @@ def main():
 
 	### Evaluation Parameters
 	num_goal_reached = 0
-	max_steps = 200
+	max_steps = 500
 	num_iterations = 3
 
 	### Reset and Render
@@ -236,7 +239,7 @@ def main():
 			x, y = pose_transform(current_pose, target, True)
 			state = env.pose = [x, y, current_pose[2]]
 
-			for _ in range(max_steps):
+			for episode_steps in range(max_steps):
 				action = agent.select_action(state)
 				next_state, reward, done, _ = env.step(action)
 				ep_reward += reward
@@ -260,21 +263,22 @@ def main():
 
 				# Check if target needs to be updated
 				if i_waypoint > 0:
-					if get_closest_idx(waypoints, current_pose[:2]) > i_waypoint:
+					if get_closest_idx(waypoints, current_pose) > i_waypoint:
 						done = True
 
 				# if done with current goal - reached or passed
 				if done:
 					# if goal_reached:
-					num_goal_reached += 1
-					goals_in_iter += 1
+					if (reward > 9) and (episode_steps > 1):
+						num_goal_reached += 1
+						goals_in_iter += 1
 					break
 
 
-			print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(i_waypoint+1, ep_reward, num_goal_reached))
+			print("Episode : {}, \tEpisode Total Reward : {:.4f}, \tNumber of Times Goal Reached : {}".format(i_waypoint+1, ep_reward, goals_in_iter))
 
 		# Print current iteration statistics
-		print("Total Number of Times Goal Reached : {}/{}".format(goals_in_iter, len(waypoints)))
+		print("Total Number of Times Goal Reached : {}/{}".format(num_goal_reached, len(waypoints)*(ep+1)))
 		print('####################################')
 
 if __name__ == '__main__':

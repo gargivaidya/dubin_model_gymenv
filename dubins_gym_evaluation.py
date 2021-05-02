@@ -197,14 +197,14 @@ def main():
 	env =  DubinGym(start_point)
 
 	### Load your trained model
-	actor_path = "models/sac_actor_random_initial_2"
-	critic_path = "models/sac_critic_random_initial_2"
+	actor_path = "models/sac_actor_random_initial_4"
+	critic_path = "models/sac_critic_random_initial_4"
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	agent.load_model(actor_path, critic_path)
 
 	### Evaluation Parameters
 	num_goal_reached = 0
-	max_steps = 500
+	max_steps = 200
 	num_iterations = 3
 
 	### Reset and Render

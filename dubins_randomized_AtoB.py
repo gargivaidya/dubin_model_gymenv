@@ -50,7 +50,9 @@ parser.add_argument('--target_update_interval', type=int, default=1, metavar='N'
                     help='Value target update per no. of updates per step (default: 1)')
 parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-parser.add_argument('--cuda', action="store_true",
+#parser.add_argument('--cuda', action="store_false",
+#                    help='run on CUDA (default: False)')
+parser.add_argument('--cuda', type = int, default = 0, metavar = 'N',
                     help='run on CUDA (default: False)')
 parser.add_argument('--max_episode_length', type=int, default=800, metavar='N',
 					help='max episode length (default: 3000)')
@@ -173,7 +175,7 @@ class DubinGym(gym.Env):
 		ld = self.get_distance(self.pose, self.target)
 		crossTrackError = math.sin(alpha) * ld
 
-		return -1*( 3*abs(crossTrackError) + abs(x - x_target) + abs(y - y_target) + 3*abs (head_to_target - yaw_car)/1.57)/8
+		return -1*(abs(crossTrackError)**3 + abs(x - x_target) + abs(y - y_target) + 3*abs (head_to_target - yaw_car)/1.57)/6
 
 	def get_distance(self,x1,x2):
 		return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
@@ -332,7 +334,7 @@ def main():
 		state = env.reset()
 		
 		while not done:
-			env.render() # Rendering toggle
+			#env.render() # Rendering toggle
 			start_time = time.time()
 			if args.start_steps > total_numsteps:
 				action = env.action_space.sample()  # Sample random action
@@ -386,7 +388,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("random_initial", suffix = "2")
+	agent.save_model("random_initial", suffix = "5")
 	return True
 
 	# # Environment Test

@@ -256,6 +256,7 @@ class DubinGym(gym.Env):
 		head_to_target = self.get_heading(state, self.target)
 		yaw = state[2] + head_to_target
 		state[2] = yaw + throttle / WB * math.tan(steer) * DT
+		state[2] = state[2] - head_to_target
 
 		return state
 
@@ -342,7 +343,7 @@ def main():
 		state = env.reset()
 		
 		while not done:
-			env.render() # Rendering toggle
+			#env.render() # Rendering toggle
 			start_time = time.time()
 			if args.start_steps > total_numsteps:
 				action = env.action_space.sample()  # Sample random action

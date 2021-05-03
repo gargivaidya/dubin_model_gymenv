@@ -398,7 +398,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("random_initial", suffix = "5")
+	agent.save_model("random_initial", suffix = "6")
 	return True
 
 	# # Environment Test

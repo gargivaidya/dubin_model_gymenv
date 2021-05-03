@@ -240,7 +240,7 @@ def main():
 			state = env.pose = [x, y, current_pose[2]]
 
 			for episode_steps in range(max_steps):
-				action = agent.select_action(state)
+				action = agent.select_action(state, True)
 				next_state, reward, done, _ = env.step(action)
 				ep_reward += reward
 

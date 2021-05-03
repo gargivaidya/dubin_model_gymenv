@@ -18,7 +18,7 @@ class SAC(object):
         self.automatic_entropy_tuning = args.automatic_entropy_tuning
 
         # self.device = torch.device("cuda" if args.cuda else "cpu")
-        self.device = torch.device("cuda:"+ str(args.cuda) if args.cuda else "cpu")
+        self.device = torch.device("cuda:"+ str(args.cuda) if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
 
         print(self.device)

@@ -166,7 +166,7 @@ def pose_transform(pose, target, subtract):
 	if not subtract:
 		return (pose[0]*MAX_X)+target[0], (pose[1]*MAX_Y)+target[1]
 	else:
-		return (pose[0]-target[0])/MAX_X, (pose[1]-target[1])/MAX_X
+		return (pose[0]-target[0])/MAX_X, (pose[1]-target[1])/MAX_Y
 
 def get_distance(x1,x2):
 	return math.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)

@@ -47,7 +47,7 @@ parser.add_argument('--target_update_interval', type=int, default=1, metavar='N'
                     help='Value target update per no. of updates per step (default: 1)')
 parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-parser.add_argument('--cuda', action="store_true",
+parser.add_argument('--cuda', type = int, default = 0, metavar = 'N',
                     help='run on CUDA (default: False)')
 parser.add_argument('--max_episode_length', type=int, default=300, metavar='N',
 					help='max episode length (default: 3000)')
@@ -186,19 +186,19 @@ def main():
 
 	### Declare variables for environment
 	start_point = [0., 0., 1.57]
-	waypoints = [[0., 1., 1.57], [0., 2., 1.57],[0.5, 3., 1.57], [1., 4., 1.57], [2., 5., 1.57], [3., 6., 1.57], [3., 7., 1.57], [4., 8., 1.57]]
+	#waypoints = [[0., 1., 1.57], [0., 2., 1.57],[0.5, 3., 1.57], [1., 4., 1.57], [2., 5., 1.57], [3., 6., 1.57], [3., 7., 1.57], [4., 8., 1.57]]
 	#waypoints = [[0., 1., 1.57], [0.5, 2., 1.57],[1., 3., 1.57], [2., 3.5, 1.57], [3., 3.5, 1.57], [4., 3., 1.57], [4.5, 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
 	#waypoints = [[0., 1., 1.57], [1., 2., 1.57],[2., 3., 1.57], [3., 3., 1.57], [4., 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
 	#waypoints = [[0., 1., 1.57], [0.5, 2., 1.57],[1., 2.5, 1.57], [2., 3.5, 1.57], [3., 3.5, 1.57], [4., 2.5, 1.57], [4.5, 2., 1.57], [5., 1., 1.57], [5., 0., 1.57]]
 	#waypoints = [[1., 2., 1.57], [3., 2., 1.57],[4., 0., 1.57]]
-	#waypoints = [[2., 0., 1.57], [1., -1., 1.57], [0., 0., 1.57]]
+	waypoints = [[1., 1., 1.57]]#, [1., -1., 1.57], [0., 0., 1.57]]
 
 	traj = [[],[]]
 	env =  DubinGym(start_point)
 
 	### Load your trained model
-	actor_path = "models/sac_actor_random_initial_4"
-	critic_path = "models/sac_critic_random_initial_4"
+	actor_path = "models/sac_actor_random_initial_5"
+	critic_path = "models/sac_critic_random_initial_5"
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	agent.load_model(actor_path, critic_path)
 

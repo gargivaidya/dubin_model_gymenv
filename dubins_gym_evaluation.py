@@ -64,13 +64,13 @@ MAX_Y = 5.
 THETA0 = np.pi/4
 
 # Vehicle parameters
-LENGTH = 0.45  # [m]
+LENGTH = 0.25  # [m]
 WIDTH = 0.2  # [m]
-BACKTOWHEEL = 0.1  # [m]
+BACKTOWHEEL = 0.05  # [m]
 WHEEL_LEN = 0.03  # [m]
 WHEEL_WIDTH = 0.02  # [m]
 TREAD = 0.07  # [m]
-WB = 0.25  # [m]
+WB = 0.15  # [m]
 
 
 def plot_car(pose, action, cabcolor="-r", truckcolor="-k"):  # pragma: no cover

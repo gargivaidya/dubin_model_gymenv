@@ -80,7 +80,7 @@ show_animation = True
 
 class DubinGym(gym.Env):
 
-	def __init__(self, start_point):
+	def __init__(self, start_point,mu_):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
 		self.action_space = spaces.Box(np.array([0., -1.57]), np.array([1., 1.57]), dtype = np.float32)
@@ -93,6 +93,8 @@ class DubinGym(gym.Env):
 		self.traj_x = [self.pose[0]*MAX_X]
 		self.traj_y = [self.pose[1]*MAX_Y]
 		self.traj_yaw = [self.pose[2]]
+		print('mu : ',mu_)
+		self.mu = mu_
 
 	"""
 	Redundant functions
@@ -151,6 +153,11 @@ class DubinGym(gym.Env):
 	def reset(self): 
 		x = random.uniform(-1., 1.)
 		y = random.choice([-1., 1.])*math.sqrt(1. - x**2)
+		s1 = np.random.normal(0,self.mu)
+		s2 = np.random.normal(0,self.mu)
+		x = x + s1
+		y = y + s2
+		print('randomized : x',x,'radomized : y',y,'noise : ',s1,',',s2)
 		theta = self.get_heading([x, y], self.target)
 		yaw = random.uniform(theta - THETA0, theta + THETA0)
 		self.pose = np.array([x/MAX_X, y/MAX_Y, yaw])
@@ -313,13 +320,14 @@ class DubinGym(gym.Env):
 
 def main():
 
-	env =  DubinGym([1., 0., -1.57])
+	mu = 0.1
+	env =  DubinGym([1., 0., -1.57],mu)
 	## Model Training
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	# Memory
 	memory = ReplayMemory(args.replay_size, args.seed)
 	#Tesnorboard
-	writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), 'DeepracerGym',
+	writer = SummaryWriter('runs_dr/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), 'DeepracerGym',
 														 args.policy, "autotune" if args.automatic_entropy_tuning else ""))
 
 	total_numsteps = 0
@@ -334,7 +342,7 @@ def main():
 		state = env.reset()
 		
 		while not done:
-			#env.render() # Rendering toggle
+			env.render() # Rendering toggle
 			start_time = time.time()
 			if args.start_steps > total_numsteps:
 				action = env.action_space.sample()  # Sample random action
@@ -388,7 +396,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("random_initial", suffix = "5")
+	agent.save_model("random_initial_dr_test", suffix = "1")
 	return True
 
 	# # Environment Test

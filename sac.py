@@ -21,6 +21,8 @@ class SAC(object):
         self.device = torch.device("cuda:"+ str(args.cuda) if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
 
+        #self.device = torch.device("cuda:0")
+
         print(self.device)
         self.critic = QNetwork(num_inputs, action_space.shape[0], args.hidden_size).to(device=self.device)
         self.critic_optim = Adam(self.critic.parameters(), lr=args.lr)
@@ -108,13 +110,13 @@ class SAC(object):
 
     # Save model parameters
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
-        if not os.path.exists('models/'):
-            os.makedirs('models/')
+        if not os.path.exists('models_dr_test/'):
+            os.makedirs('models_dr_test/')
 
         if actor_path is None:
-            actor_path = "models/sac_actor_{}_{}".format(env_name, suffix)
+            actor_path = "models_dr_test/sac_actor_{}_{}".format(env_name, suffix)
         if critic_path is None:
-            critic_path = "models/sac_critic_{}_{}".format(env_name, suffix)
+            critic_path = "models_dr_test/sac_critic_{}_{}".format(env_name, suffix)
         print('Saving models to {} and {}'.format(actor_path, critic_path))
         torch.save(self.policy.state_dict(), actor_path)
         torch.save(self.critic.state_dict(), critic_path)

@@ -51,7 +51,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
 #                    help='run on CUDA (default: False)')
 parser.add_argument('--cuda', type = int, default = 0, metavar = 'N',
                     help='run on CUDA (default: False)')
-parser.add_argument('--max_episode_length', type=int, default=400, metavar='N',
+parser.add_argument('--max_episode_length', type=int, default=800, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
@@ -59,9 +59,9 @@ args = parser.parse_args()
 MAX_STEER = 2.84
 MAX_SPEED = 0.22
 MIN_SPEED = 0.
-THRESHOLD_DISTANCE_2_GOAL = 0.02
-MAX_X = 10.
-MAX_Y = 10.
+THRESHOLD_DISTANCE_2_GOAL = 0.05
+MAX_X = 1.
+MAX_Y = 1.
 THETA0 = np.pi/4
 
 # Vehicle parameters
@@ -77,29 +77,33 @@ show_animation = True
 
 class DubinGym(gym.Env):
 
-	def __init__(self, start_point):
+	def __init__(self):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
-		self.action_space = spaces.Box(np.array([-0.22, -2.84]), np.array([0.22, 2.84]), dtype = np.float32) # max rotational velocity of burger is 2.84 rad/s
+		self.action_space = spaces.Box(np.array([0., -2.84]), np.array([1., 2.84]), dtype = np.float32) # max rotational velocity of burger is 2.84 rad/s
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
-		self.target = [0./MAX_X, 0./MAX_Y, 1.57]
-		self.pose = [start_point[0]/MAX_X, start_point[1]/MAX_Y, start_point[2]]
+		self.target = [1., 0., 1.57]
+		self.pose = [0., 0., 0.]
 		self.action = [0., 0.]
 		self.traj_x = [self.pose[0]*MAX_X]
 		self.traj_y = [self.pose[1]*MAX_Y]
 		self.traj_yaw = [self.pose[2]]
 
 	def reset(self): 
+		self.pose = np.array([0., 0., 0.]) # Reset bot to origin
 		x = random.uniform(-1., 1.)
-		y = random.choice([-1., 1.])*math.sqrt(1. - x**2)
-		theta = self.get_heading([x, y], self.target)
+		y = random.choice([-1., 1.]) #random.choice([-1., 1.])*math.sqrt(1. - x**2)
+
+		self.target[0], self.target[1] = random.choice([[x, y], [y, x]]) #x, y
+		theta = self.get_heading(self.pose, self.target)
 		yaw = random.uniform(theta - THETA0, theta + THETA0)
-		self.pose = np.array([x/MAX_X, y/MAX_Y, yaw])
-		self.traj_x = [x]
-		self.traj_y = [y]
-		self.traj_yaw = [yaw]
+		self.pose[2] = yaw
+		self.target[2] = yaw
+		self.traj_x = [0.]
+		self.traj_y = [0.]
+		self.traj_yaw = [self.pose[2]]
 		return np.array(self.pose)
 
 	def get_reward(self):
@@ -110,7 +114,7 @@ class DubinGym(gym.Env):
 		y = self.pose[1]
 		yaw_car = self.pose[2]
 		head_to_target = self.get_heading(self.pose, self.target)
-		alpha = head_to_target - self.pose[2]
+		alpha = head_to_target - yaw_car
 		ld = self.get_distance(self.pose, self.target)
 		crossTrackError = math.sin(alpha) * ld
 
@@ -122,15 +126,13 @@ class DubinGym(gym.Env):
 	def get_heading(self, x1, x2):
 		return math.atan2((x2[1] - x1[1]), (x2[0] - x1[0]))		
 
-	def step(self,action):
+	def step(self, action):
 		reward = 0
 		done = False
 		info = {}
 		self.action = action
 		self.pose = self.update_state(self.pose, action, 0.005) # 0.005 Modify time discretization
-
-
-		if ((abs(self.pose[0]) < 1.) and (abs(self.pose[1]) < 1.)):
+		if ((abs(self.pose[0]) < 2.) and (abs(self.pose[1]) < 2.)):
 
 			if(abs(self.pose[0]-self.target[0])<THRESHOLD_DISTANCE_2_GOAL and  abs(self.pose[1]-self.target[1])<THRESHOLD_DISTANCE_2_GOAL):
 				reward = 10            
@@ -157,13 +159,12 @@ class DubinGym(gym.Env):
 		plt.gcf().canvas.mpl_connect('key_release_event',
 				lambda event: [exit(0) if event.key == 'escape' else None])
 		plt.plot(self.traj_x, self.traj_y, "ob", markersize = 2, label="trajectory")
-		plt.plot(self.target[0]*MAX_X, self.target[1]*MAX_Y, "xg", label="target")
+		plt.plot(self.target[0], self.target[1], "xg", label="target")
 		self.plot_car()
 		plt.axis("equal")
 		plt.grid(True)
 		plt.title("Simulation")
-		plt.pause(0.0001)
-		
+		plt.pause(0.0001)		
 
 	def close(self):
 		pass
@@ -172,17 +173,6 @@ class DubinGym(gym.Env):
 
 		lin_velocity = a[0]
 		rot_velocity = a[1]
-
-		if rot_velocity >= MAX_STEER:
-			rot_velocity = MAX_STEER
-		elif rot_velocity <= -MAX_STEER:
-			rot_velocity = -MAX_STEER
-
-		if lin_velocity > MAX_SPEED:
-			lin_velocity = MAX_SPEED
-		elif lin_velocity < MIN_SPEED:
-			lin_velocity = MIN_SPEED
-
 
 		state[0] = state[0] + lin_velocity * math.cos(state[2]) * DT
 		state[1] = state[1] + lin_velocity * math.sin(state[2]) * DT
@@ -252,7 +242,7 @@ class DubinGym(gym.Env):
 
 def main():
 
-	env =  DubinGym([1., 0., -1.57])
+	env =  DubinGym()
 	## Model Training
 	agent = SAC(env.observation_space.shape[0], env.action_space, args)
 	# Memory
@@ -327,7 +317,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("burger", suffix = "1")
+	agent.save_model("burger", suffix = "3")
 	return True
 
 	# # Environment Test
@@ -338,7 +328,7 @@ def main():
 	# 	state = env.reset()
 	# 	env.render()
 	# 	for i in range(max_steps):
-	# 		action = [1.0, 0.]
+	# 		action = [0., 2.0]
 	# 		n_state,reward,done,info = env.step(action)
 	# 		env.render()
 	# 		if done:

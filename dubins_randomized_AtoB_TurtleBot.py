@@ -97,14 +97,15 @@ class DubinGym(gym.Env):
 		y = random.choice([-1., 1.]) #random.choice([-1., 1.])*math.sqrt(1. - x**2)
 
 		self.target[0], self.target[1] = random.choice([[x, y], [y, x]]) #x, y
-		theta = self.get_heading(self.pose, self.target)
-		yaw = random.uniform(theta - THETA0, theta + THETA0)
+		head_to_target = self.get_heading(self.pose, self.target)
+		yaw = random.uniform(head_to_target - THETA0, head_to_target + THETA0)
 		self.pose[2] = yaw
 		self.target[2] = yaw
 		self.traj_x = [0.]
 		self.traj_y = [0.]
 		self.traj_yaw = [self.pose[2]]
-		return np.array(self.pose)
+
+		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - yaw])
 
 	def get_reward(self):
 		x_target = self.target[0]
@@ -147,7 +148,7 @@ class DubinGym(gym.Env):
 			print("Outside range")
 			#print("Distance : {:.3f} {:.3f}".format(abs(self.pose[0]-self.target[0])*MAX_X, abs(self.pose[1]-self.target[1])*MAX_Y))
 
-		return np.array(self.pose), reward, done, info     
+		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - yaw]), reward, done, info     
 
 	def render(self):
 		self.traj_x.append(self.pose[0]*MAX_X)
@@ -317,7 +318,7 @@ def main():
 	print('----------------------Training Ending----------------------')
 	# env.stop_car()
 
-	agent.save_model("burger", suffix = "3")
+	agent.save_model("burger", suffix = "4")
 	return True
 
 	# # Environment Test

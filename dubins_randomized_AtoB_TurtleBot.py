@@ -266,7 +266,7 @@ def main():
 		state = env.reset()
 		
 		while not done:
-			env.render() # Rendering toggle
+			# env.render() # Rendering toggle
 			start_time = time.time()
 			if args.start_steps > total_numsteps:
 				action = env.action_space.sample()  # Sample random action

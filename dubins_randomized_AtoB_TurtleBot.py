@@ -35,7 +35,7 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=300000, metavar='N',
+parser.add_argument('--num_steps', type=int, default=200000, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
@@ -51,7 +51,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
 #                    help='run on CUDA (default: False)')
 parser.add_argument('--cuda', type = int, default = 0, metavar = 'N',
                     help='run on CUDA (default: False)')
-parser.add_argument('--max_episode_length', type=int, default=800, metavar='N',
+parser.add_argument('--max_episode_length', type=int, default=600, metavar='N',
 					help='max episode length (default: 3000)')
 args = parser.parse_args()
 
@@ -80,7 +80,7 @@ class DubinGym(gym.Env):
 	def __init__(self):
 		super(DubinGym,self).__init__()
 		metadata = {'render.modes': ['console']}
-		self.action_space = spaces.Box(np.array([0., -2.84]), np.array([1., 2.84]), dtype = np.float32) # max rotational velocity of burger is 2.84 rad/s
+		self.action_space = spaces.Box(np.array([0., -2.5]), np.array([1., 2.5]), dtype = np.float32) # max rotational velocity of burger is 2.84 rad/s
 		low = np.array([-1.,-1.,-4.])
 		high = np.array([1.,1.,4.])
 		self.observation_space = spaces.Box(low, high, dtype=np.float32)
@@ -105,7 +105,7 @@ class DubinGym(gym.Env):
 		self.traj_y = [0.]
 		self.traj_yaw = [self.pose[2]]
 
-		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - yaw])
+		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - self.pose[2]])
 
 	def get_reward(self):
 		x_target = self.target[0]
@@ -133,7 +133,7 @@ class DubinGym(gym.Env):
 		info = {}
 		self.action = action
 		self.pose = self.update_state(self.pose, action, 0.005) # 0.005 Modify time discretization
-		if ((abs(self.pose[0]) < 2.) and (abs(self.pose[1]) < 2.)):
+		if ((abs(self.pose[0] - self.target[0]) < 1.5) and (abs(self.pose[1] - self.target[1]) < 1.5)):
 
 			if(abs(self.pose[0]-self.target[0])<THRESHOLD_DISTANCE_2_GOAL and  abs(self.pose[1]-self.target[1])<THRESHOLD_DISTANCE_2_GOAL):
 				reward = 10            
@@ -148,7 +148,9 @@ class DubinGym(gym.Env):
 			print("Outside range")
 			#print("Distance : {:.3f} {:.3f}".format(abs(self.pose[0]-self.target[0])*MAX_X, abs(self.pose[1]-self.target[1])*MAX_Y))
 
-		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - yaw]), reward, done, info     
+		head_to_target = self.get_heading(self.pose, self.target)
+
+		return np.array([self.target[0] - self.pose[0], self.target[1] - self.pose[1], head_to_target - self.pose[2]]), reward, done, info     
 
 	def render(self):
 		self.traj_x.append(self.pose[0]*MAX_X)
@@ -264,7 +266,7 @@ def main():
 		state = env.reset()
 		
 		while not done:
-			# env.render() # Rendering toggle
+			env.render() # Rendering toggle
 			start_time = time.time()
 			if args.start_steps > total_numsteps:
 				action = env.action_space.sample()  # Sample random action
